@@ -11,6 +11,10 @@ python = "^3.11"
 fastapi = "^0.115.0"
 uvicorn = {extras = ["standard"], version = "^0.30.0"}
 gunicorn = "^23.0.0"
+psycopg-pool = "^3.2.6"
+pydantic = "^2.11.9"
+psycopg = {extras = ["binary"], version = "^3.2.10"}
+email-validator = "^2.3.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.0"
