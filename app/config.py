@@ -9,9 +9,6 @@ class Settings(BaseModel):
     # Postgres
     pg_dsn: str = Field(default=os.getenv("PG_DSN", "postgresql://app:app@db:5432/app"))
 
-    # Redis (optional)
-    redis_url: str | None = os.getenv("REDIS_URL", "redis://redis:6379/0")
-
     # SMTP provider (HTTP)
     smtp_base_url: str = Field(
         default=os.getenv("SMTP_BASE_URL", "http://smtp-mock:8080")
