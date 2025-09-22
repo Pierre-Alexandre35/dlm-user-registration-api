@@ -1,3 +1,16 @@
+## Project Overview
+
+A containerized micro-service implementing user registration and activation.
+Users register with email + password, receive a 4-digit code via email, and activate their account within 1 minute using Basic Auth.
+
+## Tools used
+
+- PSQL: Database (2 tables)
+- Psycopg3: low-level PostgreSQL driver (no ORM)
+- Pydantic: Request/response validation and serialization
+- Argon2-cffi: secure password hashing
+- httpx: async HTTP client to interact with the external SMTP service
+
 docker build -t fastapi-hello:latest .
 
 docker run --rm -p 8000:8000 fastapi-hello:latest \
@@ -7,3 +20,38 @@ docker run --rm -p 8000:8000 fastapi-hello:latest \
 or
 
 docker compose --profile dev up --build
+
+TEST SERVER DE LOGS:
+
+docker compose build smtp-mock  
+docker compose --profile dev up -d
+docker compose logs -f smtp-mock
+
+curl -X POST http://localhost:18080/send \
+ -H "Content-Type: application/json" \
+ -d '{"to":"alice@example.com","subject":"Your code","body":"Code: 1334"}'
+{"status":"sent"}%
+
+## project layout
+
+```
+.
+├── app/                  # FastAPI source
+│   ├── routers/          # Routers: auth, users
+│   ├── crud/             # Repos: users_repo, tokens_repo
+│   ├── services/         # smtp_client (3rd-party mock)
+│   ├── core/security.py  # Argon2id + OTP
+│   ├── db/cursor.py      # psycopg3 connection
+│   └── main.py           # FastAPI entrypoint
+├── migrations/           # SQL migrations
+│   └── 001_init.up.sql
+├── smtp-mock/            # Fake SMTP server (logs code)
+│   ├── main.py
+│   └── Dockerfile
+├── docker-compose.yml
+├── Dockerfile            # FastAPI app
+├── pyproject.toml
+├── poetry.lock
+├── run.sh                # Orchestration + smoke test
+└── README.md
+```

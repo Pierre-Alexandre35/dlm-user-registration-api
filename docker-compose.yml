@@ -17,7 +17,7 @@ services:
       timeout: 3s
       retries: 10
 
-  # ---------- Migration job ----------
+  # ---------- Migrations (single service) ----------
   migrate:
     image: migrate/migrate:latest
     depends_on:
@@ -25,12 +25,30 @@ services:
         condition: service_healthy
     volumes:
       - ./migrations:/migrations:ro
-    command:
-      [
-        "-path=/migrations",
-        "-database=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable",
-        "up",
-      ]
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-app}
+      POSTGRES_USER: ${POSTGRES_USER:-app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-app}
+      MIGRATE_RESET: ${MIGRATE_RESET:-0} # set to 1 to drop schema before up
+    entrypoint: ["/bin/sh", "-lc"]
+    command: |
+      set -e
+      DBURL="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable"
+      if [ "$MIGRATE_RESET" = "1" ]; then
+        echo ">> migrate drop -f (dev reset)"
+        migrate -path=/migrations -database="$DBURL" drop -f
+      fi
+      echo ">> migrate up"
+      migrate -path=/migrations -database="$DBURL" up
+    profiles: ["dev", "prod"]
+
+  # ---------- SMTP mock ----------
+  smtp-mock:
+    build: ./smtp-mock
+    ports:
+      - "18080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/health"]
     profiles: ["dev", "prod"]
 
   # ---------- FastAPI app (dev with hot reload) ----------

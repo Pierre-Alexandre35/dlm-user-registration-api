@@ -17,6 +17,15 @@ def create_user(conn: Connection, *, email: str, password_hash: str) -> int:
             return cur.fetchone()["id"]
 
 
+def get_user_by_email(conn: Connection, email: str) -> Optional[dict]:
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT id, email, is_active, password_hash FROM users WHERE email = %s",
+            (email,),
+        )
+        return cur.fetchone()
+
+
 def get_user_by_id(conn: Connection, user_id: int) -> Optional[dict]:
     with conn.cursor() as cur:
         cur.execute(
@@ -40,3 +49,18 @@ def list_users(
     with conn.cursor() as cur:
         cur.execute(sql, tuple(params))
         return cur.fetchall()
+
+
+def activate_user(conn: Connection, user_id: int) -> bool:
+    with conn.transaction():
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                UPDATE users
+                SET is_active = true
+                WHERE id = %s
+                RETURNING id
+                """,
+                (user_id,),
+            )
+            return cur.fetchone() is not None
