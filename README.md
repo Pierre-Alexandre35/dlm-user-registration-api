@@ -167,6 +167,8 @@ sequenceDiagram
   A-->>C: 410 Gone {"detail": "Code expired"}
 ```
 
+![alt Test 1](docs/test_code_success.png)
+
 ### Case 2: user enter a wrong code
 
 ```
@@ -182,6 +184,8 @@ sequenceDiagram
   V-->>A: InvalidSignatureError
   A-->>C: 401 Unauthorized {"detail": "Invalid credentials"}
 ```
+
+![alt Test 2](docs/test_code_expired.png)
 
 ## To Do:
 
