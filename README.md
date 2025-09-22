@@ -3,11 +3,43 @@
 A containerized micro-service implementing user registration and activation.
 Users register with email + password, receive a 4-digit code via email, and activate their account within 1 minute using Basic Auth.
 
-##
+## Run the project
+
+## Requirements
+
+- [Docker](https://www.docker.com/)
+- [Docker Compose](https://docs.docker.com/compose/)
+
+## Start the project
+
+```
+./run.sh
+
+```
+
+This will:
+
+- Build the FastAPI app and SMTP mock
+- Start the full stack with Docker Compose
+- Wait for services to be healthy
+
+## Launch the project with smoke testing
+
+To verify the full flow automatically (register, send code, activate):
+
+This will:
+
+Register a test user
+
+Send a 4-digit code via the mock SMTP
+
+Activate the user via Basic Auth
+
+Run an expiration test after 60 seconds
 
 ![alt API swagger](docs/swagger.png)
 
-http://0.0.0.0:8000/docs#/
+Auth API swagger: http://0.0.0.0:8000/docs#/
 
 ## Tech Stack
 
