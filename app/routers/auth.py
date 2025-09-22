@@ -7,6 +7,7 @@ from psycopg import Connection
 
 from app.config import settings
 from app.core.security import hash_password, gen_otp, hash_otp, ph
+from app.schemas.tokens import RegisterIn, EmailIn
 from app.crud import users_repo
 from app.crud.tokens_repo import TokensRepo
 from app.db.cursor import get_db
@@ -18,17 +19,6 @@ basic = HTTPBasic()
 tokens = TokensRepo()
 
 
-# --- Request models ---
-class RegisterIn(BaseModel):
-    email: EmailStr
-    password: str = Field(min_length=8, max_length=128)
-
-
-class EmailIn(BaseModel):
-    email: EmailStr
-
-
-# --- Routes ---
 @router.post("/register", status_code=status.HTTP_201_CREATED)
 def register(payload: RegisterIn, conn: Connection = Depends(get_db)):
     pw_hash = hash_password(payload.password)
@@ -47,7 +37,7 @@ def send_activation(payload: EmailIn, conn: Connection = Depends(get_db)):
     if user:
         code = gen_otp(settings.otp_length)
         code_hash = hash_otp(code)
-        tokens.upsert_for_user(conn, user["id"], code_hash)  # ✅ pass conn
+        tokens.upsert_for_user(conn, user["id"], code_hash)
         send_code_email(payload.email, code)
     return {"status": "sent"}
 

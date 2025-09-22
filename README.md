@@ -11,6 +11,34 @@ Users register with email + password, receive a 4-digit code via email, and acti
 - Argon2-cffi: secure password hashing
 - httpx: async HTTP client to interact with the external SMTP service
 
+## PSQL tables schemas:
+
+`users` Table
+
+Stores registered users.
+
+| Column          | Type        | Description                      |
+| --------------- | ----------- | -------------------------------- |
+| `id`            | BIGSERIAL   | Primary key                      |
+| `email`         | CITEXT      | Unique, case-insensitive email   |
+| `password_hash` | TEXT        | Hashed password                  |
+| `is_active`     | BOOLEAN     | Whether the account is activated |
+| `created_at`    | TIMESTAMPTZ | Timestamp of user creation       |
+| `updated_at`    | TIMESTAMPTZ | Timestamp of last update         |
+
+`activation_tokens` Table
+
+Stores 4-digit activation tokens (hashed) linked to users.
+
+| Column        | Type        | Description                        |
+| ------------- | ----------- | ---------------------------------- |
+| `id`          | BIGSERIAL   | Primary key                        |
+| `user_id`     | BIGINT      | Foreign key → `users(id)`          |
+| `code_hash`   | TEXT        | Argon2 hash of the 4-digit OTP     |
+| `created_at`  | TIMESTAMPTZ | When the token was created         |
+| `expires_at`  | TIMESTAMPTZ | Expiration timestamp               |
+| `consumed_at` | TIMESTAMPTZ | When the token was used (nullable) |
+
 docker build -t fastapi-hello:latest .
 
 docker run --rm -p 8000:8000 fastapi-hello:latest \

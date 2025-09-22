@@ -16,7 +16,6 @@ pool = ConnectionPool(
     timeout=5,
     kwargs={"autocommit": False},
 )
-pool.open()
 
 
 def get_db() -> Generator[Connection, None, None]:

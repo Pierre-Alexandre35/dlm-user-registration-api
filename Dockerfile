@@ -14,16 +14,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl \
   && ln -s /root/.local/bin/poetry /usr/local/bin/poetry
 
 
-# Install runtime deps (from Poetry export)
 COPY pyproject.toml poetry.lock* ./
 RUN pip install --no-cache-dir --upgrade pip \
  && poetry config virtualenvs.create false \
  && poetry install --only main --no-root --no-interaction --no-ansi
 
-# (Code is bind-mounted by docker compose in dev)
-# COPY app ./app
 
-# Non-root (optional)
 RUN useradd -m -u 10001 appuser
 USER appuser
 
