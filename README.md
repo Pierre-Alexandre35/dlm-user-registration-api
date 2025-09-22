@@ -25,7 +25,12 @@ This will:
 
 ## Launch the project with smoke testing
 
-To verify the full flow automatically (register, send code, activate):
+To verify the full flow automatically (register, send code, activate) for 2 cases (expired code and expired code):
+
+```
+./run_and_smoke_testing.sh
+
+```
 
 This will:
 
@@ -59,10 +64,11 @@ Auth API swagger: http://0.0.0.0:8000/docs#/
 - **SMTP Mock** — fake email service (HTTP API)
 - **httpx** — async HTTP client used to call SMTP mock
 
-### 📦 Dev & Packaging
+### Dev & Packaging
 
 - **Poetry** — dependency and packaging manager
 - **Docker / Docker Compose** — container orchestration
+- **Pytest** - For unit testing
 
 ## PSQL tables schemas:
 
@@ -176,3 +182,7 @@ sequenceDiagram
   V-->>A: InvalidSignatureError
   A-->>C: 401 Unauthorized {"detail": "Invalid credentials"}
 ```
+
+## To Do:
+
+- Continue unit testing (only 3 atm)
