@@ -38,7 +38,10 @@ need curl
 need awk
 need grep
 
-[ -f .env ] || die "Missing .env file at repo root."
+if [ ! -f .env ]; then
+  say ".env not found, creating from .env.example"
+  cp .env.example .env || die "Failed to copy .env.example"
+fi
 
 say "Bringing down previous stack"
 if [ "$CLEAN_VOLUMES" = "1" ]; then
