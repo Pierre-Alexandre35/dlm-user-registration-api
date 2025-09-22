@@ -5,25 +5,14 @@ Users register with email + password, receive a 4-digit code via email, and acti
 
 ## Tools used
 
-### Database & Persistence
+#### Database & Persistence
 
-- **PostgreSQL** (`psql`): Relational database used to store users and activation tokens (2 tables).
-- **psycopg3**: Low-level PostgreSQL driver (no ORM used).
-
-### Security
-
-- **argon2-cffi**: Secure password and OTP hashing using Argon2.
-
-### Data Validation
-
-- **Pydantic**: Request/response data validation and serialization.
-
-### Packaging & Dependency Management
-
-- **Poetry**: Manages Python dependencies and project packaging.
-
-### HTTP Client
-
+- **PostgreSQL** (`psql`): used to store users and activation tokens (2 tables)
+- **psycopg3**
+- **argon2-cffi**: OTP hashing using Argon2
+- **FastAPI**: main web framework of your app
+- **Pydantic**: Used for data validation and serialization
+- **Poetry**: Python dependencies and project packaging
 - **httpx**: Async HTTP client used to interact with the external SMTP mock service.
 
 ## PSQL tables schemas:
