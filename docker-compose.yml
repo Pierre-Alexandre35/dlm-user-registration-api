@@ -1,18 +1,87 @@
-version: "3.9"
-
 services:
+  # ---------- Database ----------
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-app}
+      POSTGRES_USER: ${POSTGRES_USER:-app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-app}
+    ports:
+      - "5432:5432" # expose only in dev, remove in prod if using a managed DB
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # ---------- Migrations (single service) ----------
+  migrate:
+    image: migrate/migrate:latest
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./migrations:/migrations:ro
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-app}
+      POSTGRES_USER: ${POSTGRES_USER:-app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-app}
+      MIGRATE_RESET: ${MIGRATE_RESET:-0} # set to 1 to drop schema before up
+    entrypoint: ["/bin/sh", "-lc"]
+    command: |
+      set -e
+      DBURL="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable"
+      if [ "$MIGRATE_RESET" = "1" ]; then
+        echo ">> migrate drop -f (dev reset)"
+        migrate -path=/migrations -database="$DBURL" drop -f
+      fi
+      echo ">> migrate up"
+      migrate -path=/migrations -database="$DBURL" up
+    profiles: ["dev", "prod"]
+
+  # ---------- SMTP mock ----------
+  smtp-mock:
+    build: ./smtp-mock
+    ports:
+      - "18080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/health"]
+    profiles: ["dev", "prod"]
+
+  # ---------- FastAPI app (dev with hot reload) ----------
   app:
     image: fastapi-hello:latest
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-    ports: ["8000:8000"]
+    ports:
+      - "8000:8000"
     volumes:
       - ./app:/app/app
     env_file: [.env]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     profiles: ["dev"]
 
+  # ---------- FastAPI app (prod, no reload, multiple workers) ----------
   app-prod:
     image: fastapi-hello:latest
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
-    ports: ["8000:8000"]
+    command: >
+      gunicorn app.main:app -k uvicorn.workers.UvicornWorker
+      --bind 0.0.0.0:8000 --workers 2 --threads 2 --timeout 60
+    ports:
+      - "8000:8000"
     env_file: [.env]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     profiles: ["prod"]
+
+volumes:
+  pg_data:
