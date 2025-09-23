@@ -4,7 +4,7 @@ set -euo pipefail
 # ---- Config -----------------------------------------------------------------
 PROFILE="${PROFILE:-dev}"                     # dev | prod
 IMAGE="${IMAGE:-fastapi-hello:latest}"        # Docker image tag for the app
-APP_URL="${APP_URL:-http://localhost:8000/v1}" # FastAPI base URL (business endpoints under /v1)
+APP_URL="${APP_URL:-http://localhost:8000}" # FastAPI base URL (business endpoints under /v1)
 PROBE_URL="${PROBE_URL:-http://localhost:8000/health}" # Health endpoint is unprefixed
 SMTP_HEALTH_URL="${SMTP_HEALTH_URL:-http://localhost:18080/health}" # host-mapped
 

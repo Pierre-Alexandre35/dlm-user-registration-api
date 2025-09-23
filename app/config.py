@@ -4,7 +4,7 @@ import os
 
 class Settings(BaseModel):
     env: str = Field(default=os.getenv("ENV", "local"))
-    api_prefix: str = "/v1"
+    api_prefix: str = ""
 
     # Postgres
     pg_dsn: str = Field(default=os.getenv("PG_DSN", "postgresql://app:app@db:5432/app"))
