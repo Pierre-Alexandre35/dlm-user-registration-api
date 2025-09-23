@@ -1,3 +1,5 @@
+NB: This project was developed alongside a full-time on-site role. I did my best with the limited time available on weekends.
+
 ## Project Overview
 
 A containerized micro-service implementing user registration and activation.
