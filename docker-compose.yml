@@ -29,12 +29,13 @@ services:
     volumes:
       - ./migrations:/migrations
     env_file: .env
+    environment:
+      DBURL: ${DBURL}
     entrypoint: ""
     command: >
       sh -c "
         set -ex
 
-        DBURL='postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable'
         echo '==> Using DBURL: $DBURL'
 
         if [ \"$MIGRATE_RESET\" = \"1\" ]; then
