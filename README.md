@@ -60,6 +60,7 @@ Auth API swagger: http://0.0.0.0:8000/docs#/
 
 - **PostgreSQL 16**
 - **psycopg3** — low-level PostgreSQL driver (no ORM)
+- **psycopg-pool**
 
 ### External Services
 
@@ -72,55 +73,61 @@ Auth API swagger: http://0.0.0.0:8000/docs#/
 - **Docker / Docker Compose** — container orchestration
 - **Pytest** - For unit testing
 
-## PSQL tables schemas:
+## PostgreSQL Table Schemas
 
-`users` Table
+### `users` Table
 
 Stores registered users.
 
-| Column          | Type        | Description                      |
-| --------------- | ----------- | -------------------------------- |
-| `id`            | BIGSERIAL   | Primary key                      |
-| `email`         | CITEXT      | Unique, case-insensitive email   |
-| `password_hash` | TEXT        | Hashed password                  |
-| `is_active`     | BOOLEAN     | Whether the account is activated |
-| `created_at`    | TIMESTAMPTZ | Timestamp of user creation       |
-| `updated_at`    | TIMESTAMPTZ | Timestamp of last update         |
+| Column          | Type        | Description                                       |
+| --------------- | ----------- | ------------------------------------------------- |
+| `id`            | BIGSERIAL   | Primary key                                       |
+| `email`         | CITEXT      | Unique, case-insensitive email (NOT NULL)         |
+| `password_hash` | TEXT        | Hashed password (NOT NULL)                        |
+| `is_active`     | BOOLEAN     | Whether the account is activated (default: false) |
+| `created_at`    | TIMESTAMPTZ | Timestamp of user creation (default: now())       |
+| `updated_at`    | TIMESTAMPTZ | Timestamp of last update (default: now())         |
 
-`activation_tokens` Table
+---
 
-Stores 4-digit activation tokens (hashed) linked to users.
+### `activation_tokens` Table
 
-| Column        | Type        | Description                        |
-| ------------- | ----------- | ---------------------------------- |
-| `id`          | BIGSERIAL   | Primary key                        |
-| `user_id`     | BIGINT      | Foreign key → `users(id)`          |
-| `code_hash`   | TEXT        | Argon2 hash of the 4-digit OTP     |
-| `created_at`  | TIMESTAMPTZ | When the token was created         |
-| `expires_at`  | TIMESTAMPTZ | Expiration timestamp               |
-| `consumed_at` | TIMESTAMPTZ | When the token was used (nullable) |
+Stores one activation token (hashed) per user.
+
+| Column        | Type        | Description                                      |
+| ------------- | ----------- | ------------------------------------------------ |
+| `id`          | BIGSERIAL   | Primary key                                      |
+| `user_id`     | BIGINT      | Foreign key → `users(id)`, **ON DELETE CASCADE** |
+| `code_hash`   | TEXT        | Argon2 hash of the 4-digit OTP (NOT NULL)        |
+| `created_at`  | TIMESTAMPTZ | When the token was created (default: now())      |
+| `expires_at`  | TIMESTAMPTZ | Expiration timestamp (NOT NULL)                  |
+| `consumed_at` | TIMESTAMPTZ | When the token was used (nullable)               |
 
 ## project layout
 
 ```
 .
-├── app/                  # FastAPI source
-│   ├── routers/          # Routers: auth, users
-│   ├── crud/             # Repos: users_repo, tokens_repo
-│   ├── services/         # smtp_client (3rd-party mock)
-│   ├── core/security.py  # Argon2id + OTP
-│   ├── db/cursor.py      # psycopg3 connection
-│   └── main.py           # FastAPI entrypoint
-├── migrations/           # SQL migrations
-│   └── 001_init.up.sql
-├── smtp-mock/            # Fake SMTP server (logs code)
-│   ├── main.py
-│   └── Dockerfile
+├── app/
+│ ├── api/
+│ │ ├── routers/ # endpoints
+│ │ └── schemas/ # Pydantic models
+│ ├── core/ # config, security, exceptions
+│ ├── domain/
+│ │ ├── entities/ # Business entities (User, ActivationToken)
+│ │ ├── interfaces/ # Abstract contracts (UserRepo, TokenRepo, Mailer)
+│ │ └── services/ # Business services (RegistrationService, ActivationService)
+│ ├── infrastructure/ # Technical implementations (adapters)
+│ │ ├── db/ # Postgres repositories (UserRepoPg, TokenRepoPg)
+│ │ └── smtp/ # SMTP client (SmtpMailer)
+│ └── main.py # entrypoint
+├── migrations/ # SQL migrations
+├── smtp-mock/ # Fake SMTP server
 ├── docker-compose.yml
-├── Dockerfile            # FastAPI app
-├── pyproject.toml
+├── Dockerfile
+├── pyproject.toml # Poetry dependencies
 ├── poetry.lock
-├── run.sh                # Orchestration + smoke test
+├── run.sh
+├── run_and_smoke_testing.sh
 └── README.md
 ```
 
@@ -136,26 +143,23 @@ sequenceDiagram
   participant S as SMTP Mock
   participant V as Argon2
 
-  C->>A: POST /v1/auth/register {email, password}
+  C->>A: POST /users {email, password}
   A->>DB: INSERT INTO users
-  A-->>C: {id}
-
-  C->>A: POST /v1/auth/send-activation {email}
-  A->>DB: DELETE existing tokens
-  A->>V: Hash OTP code with Argon2
+  A->>V: Generate + hash OTP
   A->>DB: INSERT INTO activation_tokens (code_hash, ttl=60s)
   A->>S: POST /send {to, code}
-  A-->>C: {status: "sent"}
+  A-->>C: {id, status: "sent"}
 
-  C->>A: POST /v1/auth/activate (BasicAuth email:code)
+  C->>A: POST /auth/activate (BasicAuth email:password, body: code)
   A->>DB: SELECT latest token for user
   A->>A: Check token.expires_at > now()
   A->>V: Argon2 verify(code_hash, code)
   A->>DB: UPDATE users SET is_active = true
   A-->>C: {status: "activated"}
+
 ```
 
-### Case 1: user enter an expired code (>60s)
+### Case 2: user enter an expired code (>60s)
 
 ```
 sequenceDiagram
@@ -163,15 +167,15 @@ sequenceDiagram
   participant A as FastAPI
   participant DB as PostgreSQL
 
-  C->>A: POST /v1/auth/activate (BasicAuth email:code)
+  C->>A: POST /auth/activate (BasicAuth email:password, body: code)
   A->>DB: SELECT latest token for user
   A->>A: Check token.expires_at < now()
   A-->>C: 410 Gone {"detail": "Code expired"}
 ```
 
-![alt Test 1](docs/test_code_success.png)
+![alt Test 2](docs/test_code_success.png)
 
-### Case 2: user enter a wrong code
+### Case 3: user enter a wrong code
 
 ```
 sequenceDiagram
@@ -180,51 +184,11 @@ sequenceDiagram
   participant DB as PostgreSQL
   participant V as Argon2
 
-  C->>A: POST /v1/auth/activate (BasicAuth email:wrong_code)
+  C->>A: POST /auth/activate (BasicAuth email:password, body: wrong_code)
   A->>DB: SELECT latest token for user
   A->>V: Argon2 verify(code_hash, wrong_code)
   V-->>A: InvalidSignatureError
-  A-->>C: 401 Unauthorized {"detail": "Invalid credentials"}
+  A-->>C: 400 Bad Request {"detail": "Invalid code"}
 ```
 
-![alt Test 2](docs/test_code_expired.png)
-
-## To Do:
-
-- Continue unit testing (only 3 atm)
-
-## Inital requirements
-
-# Building a user registration API
-
-## Context
-
-Dailymotion handles user registrations. To do so, user creates an account and we send a code by email to verify the account.
-
-As a core API developer, you are responsible for building this feature and expose it through API.
-
-## Specifications
-
-You have to manage a user registration and his activation.
-
-The API must support the following use cases:
-
-- Create a user with an email and a password.
-- Send an email to the user with a 4 digits code.
-- Activate this account with the 4 digits code received. For this step, we consider a `BASIC AUTH` is enough to check if he is the right user.
-- The user has only one minute to use this code. After that, an error should be raised.
-
-Design and build this API. You are completely free to propose the architecture you want.
-
-## What do we expect?
-
-- Python language is required.
-- We expect to have a level of code quality which could go to production.
-- Using frameworks is allowed only for routing, dependency injection, event dispatcher, db connection. Don't use magic (for example SQLAlchemy, even without its ORM)! We want to see **your** implementation.
-- Use the DBMS you want (except SQLite).
-- Consider the SMTP server as a third party service offering an HTTP API. You can mock the call, use a local SMTP server running in a container, or simply print the 4 digits in console. But do not forget in your implementation that **it is a third party service**.
-- Your code should be tested.
-- Your application has to run within a docker containers.
-- You should provide us the source code (or a link to GitHub)
-- You should provide us the instructions to run your code and your tests. We should not install anything except docker/docker-compose to run you project.
-- You should provide us an architecture schema.
+![alt Test 3](docs/test_code_expired.png)
