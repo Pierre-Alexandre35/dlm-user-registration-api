@@ -13,14 +13,20 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl \
   && curl -sSL https://install.python-poetry.org | python3 - \
   && ln -s /root/.local/bin/poetry /usr/local/bin/poetry
 
-
+# Copy dependency files first (better caching)
 COPY pyproject.toml poetry.lock* ./
+
 RUN pip install --no-cache-dir --upgrade pip \
  && poetry config virtualenvs.create false \
  && poetry install --only main --no-root --no-interaction --no-ansi
 
+# 👇 Copy your actual app code and migrations
+COPY app ./app
+COPY migrations ./migrations
 
 RUN useradd -m -u 10001 appuser
 USER appuser
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+EXPOSE 8000
+
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
