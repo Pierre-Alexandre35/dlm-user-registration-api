@@ -8,3 +8,9 @@ class InvalidOTP(Exception):
 
 class ExpiredOTP(Exception):
     pass
+
+
+class MailerError(Exception):
+    """Raised when mail delivery fails."""
+
+    pass

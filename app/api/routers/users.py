@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from app.api.schemas.users import UserCreate, UserIdResponse
 from app.domain.services.registration_service import RegistrationService
-from app.core.exceptions import UserAlreadyExists
+from app.core.exceptions import UserAlreadyExists, MailerError
 from app.api.dependencies import get_registration_service
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -14,3 +14,5 @@ def create_user(payload: UserCreate, service=Depends(get_registration_service)):
         return {"id": user_id}
     except UserAlreadyExists:
         raise HTTPException(status_code=409, detail="Email already exists")
+    except MailerError:
+        raise HTTPException(status_code=503, detail="Could not send activation email")

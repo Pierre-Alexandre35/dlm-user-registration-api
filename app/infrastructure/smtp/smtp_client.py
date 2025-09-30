@@ -1,6 +1,7 @@
 import os
 import requests
 from app.domain.interfaces.mailer import Mailer
+from app.core.exceptions import MailerError
 
 SMTP_URL = os.getenv("SMTP_URL", "http://smtp-mock:8080/send")
 
@@ -16,5 +17,4 @@ class SmtpMailer(Mailer):
             resp = requests.post(SMTP_URL, json=payload, timeout=5)
             resp.raise_for_status()
         except requests.RequestException as e:
-            # optional: add retry/logging
-            raise RuntimeError(f"SMTP send failed: {e}")
+            raise MailerError(f"Failed to send email to {email}: {e}") from e
