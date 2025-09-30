@@ -1,9 +1,7 @@
-import os
 import requests
 from app.domain.interfaces.mailer import Mailer
 from app.core.exceptions import MailerError
-
-SMTP_URL = os.getenv("SMTP_URL", "http://smtp-mock:8080/send")
+from app.core.config import settings
 
 
 class SmtpMailer(Mailer):
@@ -13,8 +11,16 @@ class SmtpMailer(Mailer):
             "subject": "Activation Code",
             "body": f"Your activation code is {code}",
         }
-        try:
-            resp = requests.post(SMTP_URL, json=payload, timeout=5)
-            resp.raise_for_status()
-        except requests.RequestException as e:
-            raise MailerError(f"Failed to send email to {email}: {e}") from e
+
+        for attempt in range(settings.smtp_max_retries):
+            try:
+                resp = requests.post(
+                    settings.smtp_url,
+                    json=payload,
+                    timeout=settings.smtp_timeout,
+                )
+                resp.raise_for_status()
+                return
+            except requests.RequestException as e:
+                if attempt + 1 == settings.smtp_max_retries:
+                    raise MailerError(f"Failed to send email to {email}: {e}") from e

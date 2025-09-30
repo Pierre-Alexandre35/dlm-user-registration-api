@@ -16,8 +16,7 @@ class PostgresTokenRepo(TokenRepo):
         with self.conn.transaction():
             with self.conn.cursor() as cur:
                 cur.execute(
-                    "DELETE FROM activation_tokens "
-                    "WHERE user_id = %s AND consumed_at IS NULL",
+                    "DELETE FROM activation_tokens WHERE user_id = %s AND consumed_at IS NULL",
                     (user_id,),
                 )
                 cur.execute(
@@ -28,27 +27,5 @@ class PostgresTokenRepo(TokenRepo):
                     """,
                     (user_id, code_hash, expires_at),
                 )
-                row = cur.fetchone()  # dict_row (set in get_db)
+                row = cur.fetchone()
                 return ActivationToken(**row)
-
-    def get_active_for_user(self, user_id: int):
-        with self.conn.cursor() as cur:
-            cur.execute(
-                """
-                SELECT id, user_id, code_hash, expires_at, consumed_at
-                FROM activation_tokens
-                WHERE user_id = %s AND consumed_at IS NULL
-                ORDER BY created_at DESC
-                LIMIT 1
-                """,
-                (user_id,),
-            )
-            row = cur.fetchone()
-            return ActivationToken(**row) if row else None
-
-    def consume(self, token_id: int):
-        with self.conn.cursor() as cur:
-            cur.execute(
-                "UPDATE activation_tokens SET consumed_at = now() WHERE id = %s",
-                (token_id,),
-            )
