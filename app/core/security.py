@@ -1,5 +1,4 @@
-import secrets
-import hmac
+import secrets, hmac
 from argon2 import PasswordHasher
 
 ph = PasswordHasher(time_cost=3, memory_cost=65536, parallelism=2)
@@ -11,19 +10,16 @@ def hash_password(pw: str) -> str:
 
 def verify_password(hash_: str, pw: str) -> bool:
     try:
-        ph.verify(hash_, pw)
-        return True
+        return ph.verify(hash_, pw)
     except Exception:
         return False
 
 
 def gen_otp(n_digits: int = 4) -> str:
-    # cryptographically random 4-digit code with leading zeros allowed
     return f"{secrets.randbelow(10**n_digits):0{n_digits}d}"
 
 
 def hash_otp(code: str) -> str:
-    # Argon2 on the 4-digit code is acceptable to mitigate brute-force if DB leaks
     return ph.hash(code)
 
 
