@@ -5,8 +5,6 @@ NB: This project was developed alongside a full-time on-site role. I did my best
 A containerized micro-service implementing user registration and activation.
 Users register with email + password, receive a 4-digit code via email, and activate their account within 1 minute using Basic Auth.
 
-## Run the project
-
 ## Requirements
 
 - [Docker](https://www.docker.com/)
@@ -192,3 +190,9 @@ sequenceDiagram
 ```
 
 ![alt Test 3](docs/test_code_expired.png)
+
+## TODO
+
+- Unit testing
+- architecture schemas
+- Makefile over .sh
