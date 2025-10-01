@@ -1,9 +1,24 @@
-NB: This project was developed alongside a full-time on-site role. I did my best with the limited time available on weekends.
+## Recent Improvements
+
+**Note:** This project was built in parallel with a full-time security-cleared role (100% on-site, 0 remote, desktop etc..), so major improvements were added iteratively during evenings/weekends.
+
+- Introduced clean architecture layers: separated `domain` (entities, interfaces, services) from `api` (routes) and `infrastructure` (Postgres, SMTP).
+- Decoupled business logic from HTTP routes: services handle workflows, routes only orchestrate I/O.
+- Improved repository error handling (unique constraint, not found, expired token).
+- Aligned with specifications: implemented user activation with **Basic Auth**.
 
 ## Project Overview
 
-A containerized micro-service implementing user registration and activation.
-Users register with email + password, receive a 4-digit code via email, and activate their account within 1 minute using Basic Auth.
+A containerized micro-service implementing user registration and activation.  
+Users register with email + password, receive a 4-digit code via email, and activate their account within 60 seconds using Basic Auth.
+
+## TODO / Incomplete Features
+
+- Unit tests are partially implemented; some failing cases remain to be fixed in future iterations
+- Add architecture schemas to README
+- Replace shell scripts with Makefile
+- Add type hints & docstrings for domain services
+- CI/CD setup for automated tests (e.g., GitHub Actions)
 
 ## Requirements
 
@@ -190,9 +205,3 @@ sequenceDiagram
 ```
 
 ![alt Test 3](docs/test_code_expired.png)
-
-## TODO
-
-- Unit testing
-- architecture schemas
-- Makefile over .sh
